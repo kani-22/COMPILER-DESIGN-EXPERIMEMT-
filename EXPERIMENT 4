@@ -1,0 +1,101 @@
+def parse_grammar():
+    n = int(input("Enter number of productions: "))
+    grammar = {}
+    for _ in range(n):
+        prod = input("Enter production (e.g., E->E+T|T): ").replace(" ", "")
+        lhs, rhs = prod.split("->")
+        grammar[lhs] = rhs.split("|")
+    return grammar
+
+
+def print_grammar(title, grammar):
+    print("\n" + title)
+    for lhs, prods in grammar.items():
+        print(lhs + " -> " + " | ".join(prods))
+
+
+def remove_direct_left_recursion(grammar):
+    new_grammar = {}
+    for lhs, prods in grammar.items():
+        alpha = []
+        beta = []
+
+        for p in prods:
+            if p.startswith(lhs):
+                alpha.append(p[len(lhs):])
+            else:
+                beta.append(p)
+
+        if alpha:
+            new_lhs = lhs + "'"
+            new_grammar[lhs] = [b + new_lhs for b in beta]
+            new_grammar[new_lhs] = [a + new_lhs for a in alpha] + ["ε"]
+        else:
+            new_grammar[lhs] = prods
+
+    return new_grammar
+
+
+def left_factoring(grammar):
+    changed = True
+    while changed:
+        changed = False
+        updated = {}
+
+        for lhs, prods in grammar.items():
+            if len(prods) <= 1:
+                updated[lhs] = prods
+                continue
+
+            prefix = prods[0]
+            for p in prods[1:]:
+                i = 0
+                while i < len(prefix) and i < len(p) and prefix[i] == p[i]:
+                    i += 1
+                prefix = prefix[:i]
+
+            if prefix and len(prefix) > 0:
+                changed = True
+                new_lhs = lhs + "'"
+                updated[lhs] = [prefix + new_lhs]
+                updated[new_lhs] = []
+
+                for p in prods:
+                    if p.startswith(prefix):
+                        rest = p[len(prefix):]
+                        updated[new_lhs].append(rest if rest else "ε")
+                    else:
+                        updated[new_lhs].append(p)
+            else:
+                updated[lhs] = prods
+
+        grammar = updated
+
+    return grammar
+
+
+def main():
+    print("1. Elimination of ambiguity")
+    print("2. Elimination of left recursion")
+    print("3. Left factoring")
+    choice = input("Enter choice: ")
+
+    grammar = parse_grammar()
+
+    print_grammar("\nOriginal Grammar:", grammar)
+
+    if choice == "1":
+        print("\nNote: Ambiguity cannot be removed automatically for all grammars.")
+        print("It usually requires rewriting the grammar manually based on precedence and associativity.")
+    elif choice == "2":
+        result = remove_direct_left_recursion(grammar)
+        print_grammar("After Removing Left Recursion:", result)
+    elif choice == "3":
+        result = left_factoring(grammar)
+        print_grammar("After Left Factoring:", result)
+    else:
+        print("Invalid choice")
+
+
+if __name__ == "__main__":
+    main()
